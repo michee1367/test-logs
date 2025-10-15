@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 
 const app = express();
 const PORT = 3434;
@@ -21,7 +22,7 @@ function logToFile(data) {
 }
 
 // Middleware de logging
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   const clientIp =
     req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'inconnue';
 
@@ -45,8 +46,31 @@ Body: ${JSON.stringify(req.body, null, 2)}
 
   console.log(message);
   logToFile(message);
-  res.json({ message: 'Requête reçue' });
+  //res.json({ message: 'Requête reçue' });
   //next();
+
+  // 🔁 Redirection vers l’autre app
+  
+  // URL de redirection (exemple)
+
+  const TARGET_APP_URL = 'http://localhost:3002';
+
+  try {
+    const targetUrl = `${TARGET_APP_URL}${req.originalUrl}`;
+    const response = await axios({
+      method: req.method,
+      url: targetUrl,
+      data: req.body,
+      headers: req.headers,
+      validateStatus: () => true, // accepte toutes les réponses
+    });
+
+    // Retourner la réponse originale au client
+    res.status(response.status).send(response.data);
+  } catch (error) {
+    console.error('Erreur de redirection :', error.message);
+    res.status(502).json({ error: 'Erreur lors du transfert vers le serveur cible' });
+  }
 });
 
 // Exemple de route
