@@ -45,8 +45,8 @@ Body: ${JSON.stringify(req.body, null, 2)}
 
   console.log(message);
   logToFile(message);
-
-  next();
+  res.json({ message: 'Requête reçue' });
+  //next();
 });
 
 // Exemple de route
